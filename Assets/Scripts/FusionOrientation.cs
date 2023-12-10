@@ -5,43 +5,43 @@ using UnityEngine.UI;
 
 public class SensorFusion : MonoBehaviour
 {
-    // Дані з сенсорів
-    public Vector3 gyro;  // Дані з гіроскопа
-    public Vector3 accel; // Дані з акселерометра
-    public Vector3 mag;   // Дані з магнітомера
+    // Sensor data
+    public Vector3 gyro;  // Gyroscope data
+    public Vector3 accel; // Accelerometer data
+    public Vector3 mag;   // Magnetometer data
 
+    // Filtering coefficients
+    public float gyroCoefficient = 0.9f;     // Gyroscope coefficient
+    public float accelMagCoefficient = 0.1f; // Accelerometer and magnetometer coefficient
 
-    // Коефіцієнти фільтрації
-    public float gyroCoefficient = 0.9f;     // Коефіцієнт гіроскопа
-    public float accelMagCoefficient = 0.1f; // Коефіцієнт акселерометра та магнітомера
+    public TextMeshProUGUI OrientationParameter; // Text field for displaying orientation parameters
 
-    public TextMeshProUGUI OrientationParameter; // Текстове поле для виведення параметрів орієнтації
+    public TextMeshProUGUI GyroCoef;   // Text field for displaying gyroscope coefficient
+    public TextMeshProUGUI MagAcCoef; // Text field for displaying accelerometer and magnetometer coefficient
 
-    public TextMeshProUGUI GyroCoef;   // Текстове поле для виведення коефіцієнта гіроскопа
-    public TextMeshProUGUI MagAcCoef; // Текстове поле для виведення коефіцієнта акселерометра та магнітомера
+    public Slider CoefSlider; // Slider for changing filtering coefficient
 
-    public Slider CoefSlider; // Слайдер для зміни коефіцієнта фільтрації
-
-    // Фільтрована орієнтація
+    // Filtered orientation
     private Quaternion fusedOrientation;
 
-    private Quaternion gyroOrientation = Quaternion.identity;           // Орієнтація гіроскопа
-    private Quaternion accelMagOrientation = Quaternion.identity;       // Орієнтація акселерометра та магнітомера
+    private Quaternion gyroOrientation = Quaternion.identity;           // Gyroscope orientation
+    private Quaternion accelMagOrientation = Quaternion.identity;       // Accelerometer and magnetometer orientation
 
     private void Start()
     {
         gyro = Vector3.zero;
         accel = Vector3.zero;
         mag = Vector3.zero;
-        // Підписка на події зміни даних сенсорів
+
+        // Subscribe to sensor data change events
         SensorManager.GetInstance().OnAccelerometerChanged += OnAccelerometerChanged;
         SensorManager.GetInstance().OnGyroscopeChanged += OnGyroscopeChanged;
         SensorManager.GetInstance().OnMagneticFieldChanged += OnMagneticFieldChanged;
 
-        Input.gyro.enabled = true; // Включення гіроскопа вводу
+        Input.gyro.enabled = true; // Enable input gyroscope
 
-        CoefSlider.onValueChanged.AddListener(OnSliderValueChanged); // Додавання слухача для слайдера
-        CoefSlider.value = gyroCoefficient; // Початкове значення слайдера
+        CoefSlider.onValueChanged.AddListener(OnSliderValueChanged); // Add listener for slider
+        CoefSlider.value = gyroCoefficient; // Initial slider value
     }
 
     private void OnSliderValueChanged(float value)
@@ -49,7 +49,7 @@ public class SensorFusion : MonoBehaviour
         accelMagCoefficient = 1f - value;
         gyroCoefficient = value;
 
-        // Виведення значень коефіцієнтів з обмеженням до одного знаку після коми
+        // Display coefficients with limiting to one decimal place
         GyroCoef.text = $"gyro: {gyroCoefficient:F2}";
         MagAcCoef.text = $"magac: {accelMagCoefficient:F2}";
     }
@@ -73,51 +73,51 @@ public class SensorFusion : MonoBehaviour
     {
         CalculateFusedOrientation();
 
-        // Виведення значень орієнтації в текстове поле
+        // Display orientation values in the text field
         OrientationParameter.text = $"X: {transform.rotation.eulerAngles.x} Y: {transform.rotation.eulerAngles.y} Z: {transform.rotation.eulerAngles.z}";
     }
 
     private void CalculateFusedOrientation()
     {
-        // Розрахунок матриці обертання з даних акселерометра та магнітомера
+        // Calculate rotation matrix from accelerometer and magnetometer data
         float[] rotationMatrix = GetRotationMatrix(accel, mag);
 
-        // Отримання кутів орієнтації з матриці обертання
+        // Get orientation angles from the rotation matrix
         float[] orientationAngles = GetOrientation(rotationMatrix);
 
-        // Конвертація кутів орієнтації в кватерніон
+        // Convert orientation angles to a quaternion
         accelMagOrientation = Quaternion.Euler(orientationAngles[0], orientationAngles[1], orientationAngles[2]);
 
         gyroOrientation = Input.gyro.attitude;
 
-        // Фільтрація орієнтації за допомогою комплементарного фільтра
+        // Filter orientation using complementary filter
         fusedOrientation = Quaternion.Slerp(Quaternion.identity, gyroOrientation, gyroCoefficient) *
             Quaternion.Slerp(Quaternion.identity, accelMagOrientation, accelMagCoefficient);
 
-        transform.rotation = fusedOrientation; // Застосування обчисленої орієнтації до об'єкта
+        transform.rotation = fusedOrientation; // Apply calculated orientation to the object
     }
 
     private float[] GetRotationMatrix(Vector3 accelerometer, Vector3 magnetometer)
     {
-        // Розрахунок вектора напрямку магнітного поля
+        // Calculate magnetic field direction vector
         Vector3 magneticFieldDirection = magnetometer.normalized;
 
-        // Розрахунок вектора напрямку гравітації
+        // Calculate gravity direction vector
         Vector3 gravityDirection = accelerometer.normalized;
 
-        // Розрахунок векторного добутку векторів напрямку магнітного поля та гравітації
+        // Calculate cross product of magnetic field and gravity direction vectors
         Vector3 crossProduct = Vector3.Cross(magneticFieldDirection, gravityDirection);
 
-        // Розрахунок величини векторного добутку
+        // Calculate magnitude of the cross product
         float crossProductMagnitude = crossProduct.magnitude;
 
-        // Розрахунок кута між вектором напрямку магнітного поля та нормалізованим вектором обертання
+        // Calculate angle between the magnetic field direction vector and the normalized rotation vector
         float rotationAngle1 = (float)Math.Atan2(crossProductMagnitude, Vector3.Dot(magneticFieldDirection, gravityDirection));
 
-        // Розрахунок кута між вектором напрямку гравітації та нормалізованим вектором обертання
+        // Calculate angle between the gravity direction vector and the normalized rotation vector
         float rotationAngle2 = (float)Math.Atan2(gravityDirection.y, -gravityDirection.x);
 
-        // Побудова матриці обертання за трема кутами
+        // Build rotation matrix from the three angles
         float[] rotationMatrix = new float[9];
         rotationMatrix[0] = (float)(Math.Cos(rotationAngle2) * Math.Cos(rotationAngle1));
         rotationMatrix[1] = (float)(Math.Sin(rotationAngle2) * Math.Cos(rotationAngle1));
@@ -134,16 +134,16 @@ public class SensorFusion : MonoBehaviour
 
     private float[] GetOrientation(float[] rotationMatrix)
     {
-        // Розрахунок кута крену
+        // Calculate roll angle
         float rollAngle = (float)Math.Atan2(rotationMatrix[7], rotationMatrix[8]);
 
-        // Розрахунок кута тангажу
+        // Calculate pitch angle
         float pitchAngle = (float)Math.Atan2(-rotationMatrix[2], Math.Sqrt(rotationMatrix[0] * rotationMatrix[0] + rotationMatrix[1] * rotationMatrix[1]));
 
-        // Розрахунок кута риля
+        // Calculate yaw angle
         float yawAngle = (float)Math.Atan2(rotationMatrix[6], rotationMatrix[5]);
 
-        // Повернення кутів орієнтації
+        // Return orientation angles
         float[] orientationAngles = new float[3];
         orientationAngles[0] = rollAngle;
         orientationAngles[1] = pitchAngle;
