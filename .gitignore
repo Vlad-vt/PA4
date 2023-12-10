@@ -361,3 +361,22 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Lab4.sln
+/.vsconfig
+/Assembly-CSharp-Editor.csproj
+/Builds
+/Library
+/ProjectSettings
+/Temp
+/UserSettings
+/Assembly-CSharp.csproj
+/Assets/InputSystem.inputsettings.asset
+/Assets/TextMesh Pro
+/Assets/Textures
+/Assets/Shaders
+/Assets/Materials
+/Assets/FantomPlugin/FantomLib
+/Assets/FantomPlugin/Demo
+/Assets/FantomPlugin/FantomPluginDemo_QR.png
+/Assets/FantomPlugin/fantomPlugin_ReadMe_en.txt
+/Assets/FantomPlugin/fantomPlugin_ReadMe_jp.txt
